@@ -2,6 +2,7 @@ package com.laozhao.filter;
 
 import com.laozhao.common.KeyUtils;
 import com.laozhao.common.RequestUtils;
+import com.laozhao.common.ThreadCurrent;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
@@ -11,10 +12,12 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+@WebFilter(filterName = "tokenFliter",urlPatterns = "/*")
 public class RequestFilter implements Filter{
 
 	@Value("${cookie.salt:  salt}")
@@ -23,8 +26,13 @@ public class RequestFilter implements Filter{
 	private  String   token;
 	@Value("${cookie.jaas:  jaas}")
 	private  String   jaas;
-
-	@Override
+    @Value("${cookie.loginUri:  /login}")
+	private String  loginUri;
+	// 首先检查cookie cokie的name为 指定的ip+salt 求MD5  然后使用MD5进行 byte的^ 运算 然后转16进制的字符串 取14次
+    //value的生成规则类似 不过是与 jaas+token 求MD5 然后byte ^运算 取18次16进制的值
+    //
+    // 检查cookie否过期 是否需要刷新时间
+    @Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 		HttpServletResponse resp=(HttpServletResponse)  response;
@@ -33,12 +41,18 @@ public class RequestFilter implements Filter{
         if(cookie==null){
         	String tokenstr=req.getParameter(token);
         	if(token==null){
-        	    String method=req.getMethod();
+                String method=req.getMethod();
+                String uri=req.getRequestURI();
         	    if(!method.toLowerCase().contains("get")) {
-					resp.sendRedirect("/login");
+        	         if(loginUri.equals(uri)){
+
+                     }else{
+                         resp.sendRedirect(loginUri);
+                     }
 					return ;
 				}else{
-
+                    chain.doFilter(request,response);
+                    return ;
 				}
 			} else{
                initCookieToResponse(resp,req,tokenstr);
@@ -47,6 +61,8 @@ public class RequestFilter implements Filter{
                return ;
 			}
 		}
+        ThreadCurrent.setCookieId(cookie);
+        chain.doFilter(request,response);
 	}
 
 	private void initCookieToResponse(HttpServletResponse resp, HttpServletRequest req, String tokenstr) {
