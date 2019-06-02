@@ -53,4 +53,9 @@ public class KeyUtils {
         return sb.toString();
     }
 
+
+    public static String randomString(int length){
+
+        return null;
+    }
 }
