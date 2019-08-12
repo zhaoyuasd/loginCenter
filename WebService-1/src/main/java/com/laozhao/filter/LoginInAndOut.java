@@ -24,13 +24,14 @@ public class LoginInAndOut implements Filter {
     @Value("${cookie.token: token}")
     private  String   token;
 
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletResponse resp=(HttpServletResponse)  response;
         HttpServletRequest req=(HttpServletRequest)  request;
         String uri=req.getRequestURI();
-        if(!loginUri.equalsIgnoreCase(uri)&&!loginOut.equalsIgnoreCase(uri)){
+        if(loginUri.equalsIgnoreCase(uri)||loginOut.equalsIgnoreCase(uri)){
             chain.doFilter(request,response);
             return ;
         }

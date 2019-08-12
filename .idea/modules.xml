@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/WebService-1/WebService-1.iml" filepath="$PROJECT_DIR$/WebService-1/WebService-1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/WebService-2/WebService-2.iml" filepath="$PROJECT_DIR$/WebService-2/WebService-2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/loginCenter.iml" filepath="$PROJECT_DIR$/loginCenter.iml" />
+      <module fileurl="file://$PROJECT_DIR$/loginService/loginService.iml" filepath="$PROJECT_DIR$/loginService/loginService.iml" />
+    </modules>
+  </component>
+</project>

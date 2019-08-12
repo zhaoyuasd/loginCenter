@@ -8,6 +8,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.alibaba.fastjson.JSONObject;
 import org.springframework.beans.propertyeditors.URLEditor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,12 +22,20 @@ private final ConcurrentHashMap<String, String>  userInfo=new ConcurrentHashMap(
 
 @GetMapping("/tologin")
 public void tologin(String url,HttpServletRequest req,HttpServletResponse  resp) {
-	String uuid=UUID.randomUUID().toString();
-	Cookie cook=new Cookie(cookieId,uuid);
-	cook.setHttpOnly(true);
-	cook.setPath("/");
-	System.out.println(" set cookie "+uuid);
-	resp.addCookie(cook);
+	String userName=req.getParameter("username");
+	String passWord=req.getParameter("password");
+	String uuid=null;
+	if(loginInfo.get(userName)==null) {
+		uuid = UUID.randomUUID().toString();
+		Cookie cook = new Cookie(cookieId, uuid);
+		cook.setHttpOnly(true);
+		cook.setPath("/");
+		System.out.println(" set cookie " + uuid);
+		resp.addCookie(cook);
+		userInfo.put(uuid, userName);
+		loginInfo.put(userName,uuid);
+	}
+	uuid=loginInfo.get(userName);
     System.out.println("url:"+url);
     int index=url.lastIndexOf("/");
     String toUrl="";
@@ -35,8 +44,6 @@ public void tologin(String url,HttpServletRequest req,HttpServletResponse  resp)
     else
     	toUrl=url;
     String token="/?token="+uuid;
-    userInfo.put(uuid, toUrl);
-    userInfo.put(toUrl, uuid);
     try {
     	System.out.println(toUrl+token);
     	//req.getRequestDispatcher("/redirectToOriginal?toUrl="+url+"&token="+uuid).forward(req, resp);  //不在web地址栏打印信息   转发
@@ -76,7 +83,40 @@ public void redirectToOriginal(HttpServletRequest req,HttpServletResponse  resp)
 
 
 @GetMapping("/tockeck")
-public String tockeck(String token) {
-	return userInfo.get(token);
-}
+  public JSONObject tockeck(String token) {
+	JSONObject jb=new JSONObject();
+	jb.put("flag",userInfo.get(token)==null);
+	jb.put("name",userInfo.get(token));
+	return jb;
+ }
+
+
+	/**
+	 * 一轮游 加上token
+	 */
+ @GetMapping("/getToken")
+ public void getToken(String url,HttpServletRequest req,HttpServletResponse  resp){
+	 int index=url.lastIndexOf("/");
+	 String  uuid=findplatformCookie(req);
+	 String  dir="yes";
+	 url+="?dir="+dir+"&token="+uuid;
+	 System.out.println(url);
+	 try {
+		 resp.sendRedirect(url);
+	 } catch (IOException e) {
+		 e.printStackTrace();
+	 }
+ }
+
+	private String findplatformCookie(HttpServletRequest req) {
+		String cookieName=cookieId;
+		Cookie[] cs=req.getCookies();
+		if(cs!=null)
+		for(Cookie itm:cs ){
+			if(cookieName.equals(itm.getName())){
+				return itm.getValue();
+			}
+		}
+		return null;
+	}
 }

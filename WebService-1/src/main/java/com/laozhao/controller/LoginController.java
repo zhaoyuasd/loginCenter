@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,24 +25,34 @@ public class LoginController {
  private RestTemplate restTemplate=new RestTemplate() ;
  
   @GetMapping({"/tologin","/login"})	
-  public void toLogin(HttpServletRequest req,HttpServletResponse resp) {
+  public String toLogin(HttpServletRequest req,HttpServletResponse resp) {
 	  String ulr=req.getRequestURL().toString();
 	  try {
+		  String userName=req.getParameter("username");
+		  String passWord=req.getParameter("password");
+		  if(StringUtils.isEmpty(userName)||StringUtils.isEmpty(passWord)){
+			  return "账号密码不为空";
+		  }
 		  addHeader(resp);
 		  System.out.println(ulr);
 		  //req.getRequestDispatcher(loginCenter+"?url="+ulr).forward(req, resp);
-		  resp.sendRedirect(loginCenter+"?url="+ulr);
+		StringBuffer sb=new StringBuffer();
+		sb.append(loginCenter).append("?username="+userName).append("&password="+passWord).append("&url="+ulr);
+		//resp.sendRedirect(loginCenter+"?url="+ulr);
+		  resp.sendRedirect(sb.toString());
+
 	} catch (Exception e) {
 		// TODO Auto-generated catch block
 		e.printStackTrace();
 	}
+	 return "ok";
   }
   
-  @RequestMapping("/")
-  public void tockeck(String token) {
+  @RequestMapping("/tocheck")
+  public void tocheck(String token) {
 	  String url="http://127.0.0.1:8080/tockeck?token="+token;
-     ResponseEntity<String> str=	  restTemplate.getForEntity(url, String.class, new HashMap());
-	 System.out.println(str.getBody());	   
+      ResponseEntity<String> str=restTemplate.getForEntity(url, String.class, new HashMap());
+	  System.out.println(str.getBody());
   }
   
   
