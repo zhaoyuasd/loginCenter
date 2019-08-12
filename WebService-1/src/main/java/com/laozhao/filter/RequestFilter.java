@@ -13,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.UUID;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -26,21 +27,35 @@ import javax.servlet.http.HttpServletResponse;
 
 @WebFilter(filterName = "tokenFliter",urlPatterns = "/*")
 @Component
+/**
+ * 
+ * @author zy
+ *  1. 如果的登录请求 直接放行
+ *  2. 如果是非登录请求 获取对应的cookie 
+ *     2.1 如果cookie不为空 放行
+ *     2.2 如果cookie为空 获取token 
+ *       2.2.1 如果token不为空 验证token 并根据验证的结果决定是否放行 或者重新登录
+ *       2.2.2 如果token为空 那么获取dir 
+ *         2.2.2.1 如果dir不为空说明访问过登录中心了 在该浏览器 用户没有登录
+ *         2.2.2.2 如果dir为空 说明用户是初次访问对应的网址 需要到登录中心 请求token（重定向）然后回到2.2.1        
+ *
+ */
 public class RequestFilter implements Filter{
 
-	@Value("${cookie.loginUri:  /login}")
-	private String  loginUri;
+	//@Value("${cookie.loginUri:  /login}")
+	private String  loginUri="/login";
 
-    @Value("${cookie.checktoken:  /tocheck}")
-    private String  checktoken;
+	private String cookieName=UUID.randomUUID().toString();
+    //@Value("${cookie.checktoken:  /tocheck}")
+    //private String  checktoken;
 
 	@Value("${cookie.loginOutUri:  /loginOut}")
 	private String  loginOut;
 
 	@Value("${cookie.salt:  salt}")
 	private  String   salt;
-	@Value("${cookie.token: token}")
-	private  String   token;
+	//@Value("${cookie.token: token}")
+	private  String   token="token";
 	@Value("${cookie.jaas:  jaas}")
 	private  String   jaas;
 
@@ -59,37 +74,29 @@ public class RequestFilter implements Filter{
         resp.setContentType("text/html;charset=utf-8");
         String cookie=findplatformCookie(req);
         String uri=req.getRequestURI();
-        System.out.println(uri);
+        String urls=req.getRequestURL().toString();       
+        System.out.println(urls);
         if(cookie==null){
         	String tokenstr=req.getParameter(token);
             String method=req.getMethod();
-        	if(tokenstr==null){
+        	if(tokenstr==null||"null".equalsIgnoreCase(tokenstr)){
                 if("/login".equalsIgnoreCase(uri)||loginOut.equalsIgnoreCase(uri)){
                     chain.doFilter(request,response);
                     return ;
                 }
                 String dir=req.getParameter("dir");
-                if(dir!=null){  //这里是走了登陆中心
+               //这里是走登陆中心 获取token
+                if(dir!=null){  
                     response.getOutputStream().print("not login");
                     return;
                 }else{
+                	System.out.println("走登录中心获取token");
                     String url=req.getRequestURL().toString();
                     resp.sendRedirect(getToken+"?url="+url);
                     return;
                 }
-        	   /* if(!method.toLowerCase().contains("get")) {
-        	         if(loginUri.equals(uri)){
-                         chain.doFilter(request,response);
-                         return ;
-                     }else{
-                         resp.sendRedirect(loginUri);
-                     }
-					return ;
-				}else{
-                    chain.doFilter(request,response);
-                    return ;
-				}*/
 			} else{
+			   System.out.println(tokenstr);
                JSONObject jb=tocheck(tokenstr);
                if(jb.getBoolean("flag")){
                    initCookieToResponse(resp,req,tokenstr);
@@ -103,15 +110,12 @@ public class RequestFilter implements Filter{
                     response.getOutputStream().print("login suce");
                     return;
                 }
-                chain.doFilter(request,response);
-              /* initCookieToResponse(resp,req,tokenstr);
-               String originUrl=RequestUtils.getOriginUrl(req);
-               resp.sendRedirect(originUrl);*/
+                chain.doFilter(request,response);              
                return ;
 			}
 		}else{
             if(loginUri.equalsIgnoreCase(uri)||loginOut.equalsIgnoreCase(uri)) {
-                response.getOutputStream().print("登陆成功");
+                response.getOutputStream().print("login suc");
                 return;
             }
 
@@ -136,8 +140,7 @@ public class RequestFilter implements Filter{
         ResponseEntity<String> str=restTemplate.getForEntity(url, String.class, new HashMap());
         System.out.println(str.getBody());
         String  info=str.getBody();
-        JSONObject.toJSON(info);
-        return (JSONObject)JSONObject.toJSON(info);
+        return (JSONObject)JSONObject.parseObject(info);
     }
 
 
@@ -159,7 +162,7 @@ public class RequestFilter implements Filter{
    }
 
    private String  getCookieName(HttpServletRequest req){
-        return "zy";
+        return cookieName;
 	  /* String ip= RequestUtils.getIpFromRequest(req);
 	   return  KeyUtils.getKey(ip+salt,14,8);*/
    }

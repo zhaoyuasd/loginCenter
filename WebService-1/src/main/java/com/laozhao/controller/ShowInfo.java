@@ -8,7 +8,8 @@ public class ShowInfo {
 
     @RequestMapping("/showInfo")
     public String showInfo(){
-        System.out.println("app1 ,login");
-        return "app1 ,login";
+    	String str="app456 ,login";
+        System.out.println(str);
+        return str;
     };
 }
